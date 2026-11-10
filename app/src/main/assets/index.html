@@ -1,53 +1,304 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>سرضرب</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#8c4bb2;color:white;font-family:Tahoma,Arial;overflow:hidden}
-#game{width:100vw;height:100dvh;display:block;touch-action:manipulation}
-.panel{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;padding:22px;background:linear-gradient(145deg,#a52db0dd,#713caadd)}
-.panel.show{display:flex}.card{width:min(92vw,430px);max-height:80vh;overflow:auto;background:#542477aa;border:1px solid #ffffff55;border-radius:25px;padding:20px;text-align:center;box-shadow:0 12px 35px #32104b55}
-h1{font-size:38px;margin:8px}button{border:0;border-radius:16px;padding:13px 20px;margin:7px;font-size:18px;font-weight:bold;background:#ffe500;color:#4d2870}
-button.secondary{background:#ffffffd9;color:#65328b}.row{display:flex;justify-content:center;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px 0}.level{padding:17px 5px;background:#d5b5dc;color:#777}.level.current{background:#ffe500;color:#333}.level.done{background:#70e5a4;color:#164c32}
-small{opacity:.85}.stats{display:flex;justify-content:space-between;margin:8px 0}.hide{display:none!important}
-</style></head>
+*{box-sizing:border-box}
+body{margin:0;background:#102b43;color:white;font-family:Tahoma,Arial;overflow:hidden}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:manipulation}
+.panel{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:16px;background:#071b2bd9}
+.panel.show{display:flex}
+.card{width:min(94vw,430px);max-height:90vh;overflow:auto;text-align:center;background:linear-gradient(145deg,#174b70,#102b43);border:1px solid #64d9ff66;border-radius:24px;padding:20px;box-shadow:0 15px 40px #0008}
+h1{font-size:36px;margin:10px}
+button{border:0;border-radius:14px;padding:13px 17px;margin:5px;font-size:16px;font-weight:bold;background:#ffdf35;color:#18334b}
+button.secondary{background:#d9efff;color:#18334b}
+button:disabled{opacity:.4}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.level{padding:14px 4px;background:#d9efff;color:#18334b}
+.level.done{background:#55d99a}.level.current{background:#ffdf35}
+.row{display:flex;justify-content:center;flex-wrap:wrap}
+small{color:#bdeaff}
+#hud{position:fixed;top:12px;right:12px;left:12px;display:none;justify-content:space-between;font-weight:bold;text-shadow:0 2px 4px #000}
+#pauseBtn{position:fixed;bottom:18px;right:18px;display:none}
+</style>
+</head>
 <body>
 <canvas id="game"></canvas>
-<div id="home" class="panel show"><div class="card"><h1>⚽ سرضرب</h1><p>از میان موانع عبور کن و به فینال فصل برس!</p><p id="homeStats"></p><button onclick="startGame()">شروع بازی</button><div class="row"><button class="secondary" onclick="showLevels()">انتخاب لیول</button><button class="secondary" onclick="showBalls()">توپ‌ها</button><button class="secondary" onclick="showMissions()">مدال‌ها</button></div></div></div>
-<div id="levels" class="panel"><div class="card"><h2>🏆 انتخاب لیول</h2><p id="seasonInfo"></p><div class="grid" id="levelGrid"></div><button class="secondary" onclick="show('home')">بازگشت</button></div></div>
-<div id="balls" class="panel"><div class="card"><h2>انتخاب توپ ⚽</h2><div class="grid" id="ballGrid"></div><button class="secondary" onclick="show('home')">بازگشت</button></div></div>
-<div id="missions" class="panel"><div class="card"><h2>🏅 مأموریت‌ها</h2><p>جمع‌آوری مدال: <b id="medalCount"></b></p><p>عبور از مراحل: <b id="progressText"></b></p><button class="secondary" onclick="show('home')">بازگشت</button></div></div>
-<div id="pause" class="panel"><div class="card"><h2>بازی متوقف شد</h2><button onclick="resumeGame()">ادامه</button><button class="secondary" onclick="show('home')">منوی اصلی</button></div></div>
-<div id="final" class="panel"><div class="card"><h2>🎉 فینال فصل!</h2><p>چرخ شانس را بچرخان و جایزه بگیر.</p><h1 id="wheel">🎡</h1><p id="prizeText">جایزه‌ات منتظر توست!</p><button id="spinBtn" onclick="spinWheel()">چرخاندن چرخ شانس</button><button class="secondary" onclick="show('home')">منوی اصلی</button></div></div>
-<div id="hit" class="panel"><div class="card"><h2>💥 برخورد کردی!</h2><p>به ابتدای همین فصل برگشتی.</p><button onclick="retrySeason()">شروع دوباره فصل</button><button class="secondary" onclick="show('home')">منوی اصلی</button></div></div>
+<div id="hud"><span id="levelHud">مرحله ۱</span><span>توپ‌ها: ۱۰۰</span><span id="passedHud">۰ / ۱۲</span></div>
+<button id="pauseBtn" onclick="pauseGame()">توقف</button>
+
+<div id="home" class="panel show"><div class="card">
+<h1>⚽ سَرْضَرْب</h1>
+<p>از موانع عبور کن و قهرمان ۱۰ فصل شو!</p>
+<p id="stats"></p>
+<button onclick="startGame()">شروع بازی</button>
+<div class="row">
+<button class="secondary" onclick="showLevels()">انتخاب مرحله</button>
+<button class="secondary" onclick="showBalls()">فروشگاه توپ</button>
+<button class="secondary" onclick="showMissions()">مدال‌ها</button>
+</div>
+<small>برای حرکت توپ، صفحه را لمس کن.</small>
+</div></div>
+
+<div id="levels" class="panel"><div class="card">
+<h2>🏆 انتخاب مرحله</h2><p id="seasonInfo"></p>
+<div class="grid" id="levelGrid"></div>
+<button class="secondary" onclick="show('home')">بازگشت</button>
+</div></div>
+
+<div id="balls" class="panel"><div class="card">
+<h2>⚽ فروشگاه توپ</h2><p id="coins"></p>
+<div class="grid" id="ballGrid"></div>
+<button class="secondary" onclick="show('home')">بازگشت</button>
+</div></div>
+
+<div id="missions" class="panel"><div class="card">
+<h2>🏅 مدال‌ها و مأموریت‌ها</h2>
+<p id="missionInfo"></p>
+<button class="secondary" onclick="show('home')">بازگشت</button>
+</div></div>
+
+<div id="pause" class="panel"><div class="card">
+<h2>بازی متوقف شد</h2>
+<button onclick="resumeGame()">ادامه بازی</button>
+<button class="secondary" onclick="show('home')">منوی اصلی</button>
+</div></div>
+
+<div id="hit" class="panel"><div class="card">
+<h2>💥 برخورد کردی!</h2>
+<p>باید فصل را از ابتدای خودش شروع کنی.</p>
+<button onclick="retrySeason()">شروع دوباره فصل</button>
+<button class="secondary" onclick="show('home')">منوی اصلی</button>
+</div></div>
+
+<div id="complete" class="panel"><div class="card">
+<h2>🎉 مرحله را بردی!</h2><p id="completeText"></p>
+<button onclick="nextLevel()">مرحله بعدی</button>
+<button class="secondary" onclick="show('home')">منوی اصلی</button>
+</div></div>
+
+<div id="final" class="panel"><div class="card">
+<h2>🎡 گردونه جایزه فصل</h2>
+<h1 id="wheel">🎡</h1><p id="prize">جایزه‌ات را بگیر!</p>
+<button id="spin" onclick="spinWheel()">چرخاندن گردونه</button>
+<button class="secondary" onclick="show('home')">منوی اصلی</button>
+</div></div>
+
 <script>
-const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
-let state=load(), running=false, ballX=.5, direction=1, obstacles=[], score=0, last=0, frame=0;
-function load(){try{return JSON.parse(localStorage.sarzarb||'{}')}catch(e){return {}}}
-function save(){localStorage.sarzarb=JSON.stringify(state)}
-function init(){state.level=state.level||1;state.max=state.max||1;state.medals=state.medals||0;state.taps=100;state.seasonStart=state.seasonStart||1;state.ball=state.ball||0;save();updateHome()}
-function show(id){document.querySelectorAll('.panel').forEach(x=>x.classList.remove('show'));document.getElementById(id).classList.add('show');running=false;updateHome()}
-function updateHome(){document.getElementById('homeStats').textContent=`فصل ${Math.ceil(state.level/25)} | لیول ${state.level} | جام 🏆 ${state.medals} | توپ‌ها ${state.taps}`}
-function resize(){canvas.width=innerWidth*devicePixelRatio;canvas.height=innerHeight*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0)}
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+
+let data={};
+try{data=JSON.parse(localStorage.getItem('sarzarb')||'{}')}catch(e){}
+data.level=data.level||1;
+data.max=data.max||1;
+data.medals=data.medals||0;
+data.coins=data.coins||0;
+data.ball=data.ball||0;
+data.taps=100;
+data.unlocked=data.unlocked||[0];
+function save(){localStorage.setItem('sarzarb',JSON.stringify(data))}
+function seasonStart(){return Math.floor((data.level-1)/25)*25+1}
+function show(id){
+ document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
+ if(id)document.getElementById(id).classList.add('show');
+ running=false;
+ document.getElementById('hud').style.display='none';
+ document.getElementById('pauseBtn').style.display='none';
+ updateHome();
+}
+function updateHome(){
+ document.getElementById('stats').textContent=
+ 'فصل '+Math.ceil(data.level/25)+' | مرحله '+data.level+
+ ' | مدال 🏅 '+data.medals+' | سکه 🪙 '+data.coins;
+}
+let W=0,H=0,dpr=1;
+function resize(){
+ dpr=Math.min(devicePixelRatio||1,2);
+ W=innerWidth;H=innerHeight;
+ canvas.width=W*dpr;canvas.height=H*dpr;
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+}
 addEventListener('resize',resize);resize();
-function startGame(){show('');running=true;score=0;ballX=.5;direction=1;obstacles=[];for(let i=0;i<9;i++)obstacles.push({x:Math.random()*.8+.1,y:-i*.23,w:.17+Math.random()*.13});last=performance.now();requestAnimationFrame(loop)}
-function loop(t){if(!running)return;let dt=Math.min((t-last)/1000,.04);last=t;frame+=dt;score+=dt*(.5+state.level*.012);ctx.clearRect(0,0,innerWidth,innerHeight);
-let w=innerWidth,h=innerHeight;
-ctx.fillStyle='#70abc4';ctx.fillRect(0,0,w,h);
-for(let y=0;y<h;y+=55){for(let x=0;x<w;x+=55){ctx.fillStyle=((Math.floor(x/55)+Math.floor(y/55))%2)?'#6aa4bd':'#75b2ca';ctx.fillRect(x,y,55,55)}}
-obstacles.forEach(o=>{o.y+=dt*(.42+state.level*.009);let px=o.x*w,py=o.y*h;ctx.fillStyle='#a64f43';ctx.beginPath();ctx.moveTo(px,py+23);ctx.lineTo(px+o.w*w,py+23);ctx.lineTo(px+o.w*w*.5,py-35);ctx.closePath();ctx.fill();ctx.fillStyle='#ff927d';ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+o.w*w,py);ctx.lineTo(px+o.w*w*.5,py-58);ctx.closePath();ctx.fill();if(py>h*.70&&py<h*.82&&Math.abs(ballX-o.x-o.w/2)<o.w*.55){running=false;state.level=Math.max(state.seasonStart,Math.floor(state.level/25)*25+1);save();show('hit')}});
-obstacles=obstacles.filter(o=>o.y<1.2);if(obstacles.length<9)obstacles.push({x:Math.random()*.8+.1,y:-.2,w:.17+Math.random()*.13});
-ctx.font='bold 54px Arial';ctx.textAlign='center';ctx.fillStyle='white';ctx.fillText('⚽',ballX*w,h*.77);
-ctx.font='bold 25px Arial';ctx.fillText('لیول '+state.level,w/2,55);ctx.fillText('توپ: ۱۰۰',w/2,90);
-if(score>18){running=false;completeLevel();return}requestAnimationFrame(loop)}
-canvas.addEventListener('pointerdown',()=>{if(!running)return;ballX=Math.max(.12,Math.min(.88,ballX+direction*.18));direction*=-1});
-function completeLevel(){state.medals++;if(state.level%25===0){state.seasonStart=state.level;save();show('final')}else{state.level++;state.max=Math.max(state.max,state.level);save();show('home');updateHome()}}
-function retrySeason(){state.level=state.seasonStart;save();startGame()}
+
+let running=false,ballLane=1,moveDirection=1;
+let obstacles=[],passed=0,lastTime=0,spawnTimer=0;
+let animation=0;
+
+function startGame(){
+ show('');
+ running=true;
+ ballLane=1;moveDirection=1;passed=0;spawnTimer=0;
+ obstacles=[];
+ for(let i=0;i<7;i++)obstacles.push({
+  lane:Math.floor(Math.random()*3),z:i*.16+.12
+ });
+ document.getElementById('hud').style.display='flex';
+ document.getElementById('pauseBtn').style.display='block';
+ document.getElementById('levelHud').textContent='مرحله '+data.level;
+ document.getElementById('passedHud').textContent='۰ / ۱۲';
+ lastTime=performance.now();
+ cancelAnimationFrame(animation);
+ animation=requestAnimationFrame(loop);
+}
+function pauseGame(){if(running)show('pause')}
 function resumeGame(){startGame()}
-function spinWheel(){document.getElementById('spinBtn').disabled=true;document.getElementById('wheel').textContent='🎡✨';setTimeout(()=>{let reward=['۵ مدال','توپ ویژه','۱۰ مدال','بازشدن فصل بعد'][Math.floor(Math.random()*4)];document.getElementById('prizeText').textContent='جایزه: '+reward;if(state.level<250){state.level++;state.max=Math.max(state.max,state.level)}state.seasonStart=state.level;state.medals+=5;save();document.getElementById('spinBtn').disabled=false;document.getElementById('spinBtn').textContent='ادامه به فصل بعد';document.getElementById('spinBtn').onclick=()=>{state.level=Math.min(250,state.level);state.seasonStart=state.level;save();show('home')}} ,1400)}
-function showLevels(){show('levels');let start=Math.floor((state.level-1)/10)*10+1;document.getElementById('seasonInfo').textContent=`فصل ${Math.ceil(state.level/25)} | لیول باز فعلی ${state.level}`;let g=document.getElementById('levelGrid');g.innerHTML='';for(let n=start;n<Math.min(start+10,251);n++){let b=document.createElement('button');b.className='level '+(n===state.level?'current':n<state.level?'done':'');b.textContent=n;b.disabled=n>state.max;b.onclick=()=>{state.level=n;save();startGame()};g.appendChild(b)}}
-function showBalls(){show('balls');let g=document.getElementById('ballGrid');g.innerHTML='';['⚽','🔵','🟡','🟣','🏀','🎾','🏐','🌈','⚫'].forEach((v,i)=>{let b=document.createElement('button');b.textContent=v+(i>4?' 🔒':'');b.onclick=()=>{if(i<=4){state.ball=i;save();alert('توپ انتخاب شد')}};g.appendChild(b)})}
-function showMissions(){show('missions');document.getElementById('medalCount').textContent=state.medals;document.getElementById('progressText').textContent=state.max+'/250'}
-init();
-</script></body></html>
+function retrySeason(){data.level=seasonStart();save();startGame()}
+function moveBall(){
+ if(!running)return;
+ ballLane+=moveDirection;
+ if(ballLane>2){ballLane=2;moveDirection=-1}
+ else if(ballLane<0){ballLane=0;moveDirection=1}
+ else moveDirection*=-1;
+}
+canvas.addEventListener('pointerdown',moveBall);
+
+function drawTrack(){
+ ctx.fillStyle='#102c40';ctx.fillRect(0,0,W,H);
+ let horizon=H*.16;
+ ctx.fillStyle='#347f9b';
+ ctx.beginPath();ctx.moveTo(W*.30,horizon);ctx.lineTo(W*.70,horizon);
+ ctx.lineTo(W*1.2,H);ctx.lineTo(-W*.2,H);ctx.closePath();ctx.fill();
+
+ for(let i=0;i<13;i++){
+  let z=i/13;
+  let y=horizon+z*z*(H-horizon);
+  let width=W*(.40+z*.85);
+  let cell=H/13;
+  ctx.strokeStyle='#b6efff55';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(W/2-width/2,y);ctx.lineTo(W/2+width/2,y);ctx.stroke();
+ }
+ for(let j=0;j<=3;j++){
+  let x=W*(.30+j*.133);
+  ctx.strokeStyle='#d7f6ff66';
+  ctx.beginPath();ctx.moveTo(x,H*.16);ctx.lineTo(W/2+(x-W/2)*2.1,H);ctx.stroke();
+ }
+}
+function laneX(lane,z){
+ let spread=W*(.16+z*.34);
+ return W/2+(lane-1)*spread;
+}
+function drawObstacle(o){
+ let z=o.z;
+ let y=H*.16+z*z*H*.84;
+ let size=10+z*40;
+ let x=laneX(o.lane,z);
+ ctx.fillStyle='#421d1d';
+ ctx.beginPath();
+ ctx.moveTo(x-size,y+size*.45);
+ ctx.lineTo(x+size,y+size*.45);
+ ctx.lineTo(x,y-size);
+ ctx.closePath();ctx.fill();
+ ctx.fillStyle='#ff765e';
+ ctx.beginPath();
+ ctx.moveTo(x-size,y);
+ ctx.lineTo(x+size,y);
+ ctx.lineTo(x,y-size*1.5);
+ ctx.closePath();ctx.fill();
+}
+function drawBall(){
+ let x=laneX(ballLane,1);
+ let y=H*.79;
+ ctx.font='48px Arial';ctx.textAlign='center';
+ ctx.fillText(['⚽','🏀','🔵','🟡','🟣'][data.ball]||'⚽',x,y);
+}
+function loop(now){
+ if(!running)return;
+ let dt=Math.min((now-lastTime)/1000,.05);lastTime=now;
+ drawTrack();
+ let speed=.28+data.level*.003;
+ spawnTimer+=dt;
+ if(spawnTimer>1.05){
+  spawnTimer=0;
+  obstacles.push({lane:Math.floor(Math.random()*3),z:0});
+ }
+ for(let o of obstacles){
+  o.z+=dt*speed;
+  drawObstacle(o);
+  if(!o.hit&&o.z>.88&&o.z<.99){
+   if(o.lane===ballLane){
+    running=false;
+    data.level=seasonStart();save();show('hit');return;
+   }
+   o.hit=true;passed++;
+   document.getElementById('passedHud').textContent=passed+' / ۱۲';
+  }
+ }
+ obstacles=obstacles.filter(o=>o.z<1.12);
+ drawBall();
+ if(passed>=12){completeLevel();return}
+ animation=requestAnimationFrame(loop);
+}
+function completeLevel(){
+ running=false;
+ data.medals++;data.coins+=10;
+ if(data.level%25===0){
+  save();document.getElementById('spin').disabled=false;
+  document.getElementById('spin').textContent='چرخاندن گردونه';
+  document.getElementById('spin').onclick=spinWheel;
+  document.getElementById('prize').textContent='جایزه فصل را بگیر!';
+  show('final');
+ }else{
+  data.max=Math.max(data.max,data.level+1);
+  data.level++;
+  save();
+  document.getElementById('completeText').textContent='۱۰ سکه و یک مدال گرفتی!';
+  show('complete');
+ }
+}
+function nextLevel(){data.level=Math.min(250,data.level+0);save();startGame()}
+function spinWheel(){
+ let rewards=['۲۰ سکه','۵ مدال','توپ ویژه','۳۰ سکه'];
+ let reward=rewards[Math.floor(Math.random()*rewards.length)];
+ data.coins+=20;data.medals+=5;
+ if(data.level<250){
+  data.level++;data.max=Math.max(data.max,data.level);
+ }
+ data.level=Math.min(250,data.level);
+ save();
+ document.getElementById('wheel').textContent='🎉';
+ document.getElementById('prize').textContent='جایزه تو: '+reward;
+ document.getElementById('spin').disabled=true;
+ document.getElementById('spin').textContent='جایزه دریافت شد';
+}
+function showLevels(){
+ show('levels');
+ let start=Math.floor((data.level-1)/10)*10+1;
+ document.getElementById('seasonInfo').textContent='فصل '+Math.ceil(data.level/25);
+ let g=document.getElementById('levelGrid');g.innerHTML='';
+ for(let n=start;n<Math.min(start+10,251);n++){
+  let b=document.createElement('button');
+  b.className='level '+(n===data.level?'current':n<data.max?'done':'');
+  b.textContent=n;b.disabled=n>data.max;
+  b.onclick=()=>{data.level=n;save();startGame()};
+  g.appendChild(b);
+ }
+}
+function showBalls(){
+ show('balls');
+ document.getElementById('coins').textContent='سکه‌ها: '+data.coins;
+ let g=document.getElementById('ballGrid');g.innerHTML='';
+ let balls=['⚽','🏀','🔵','🟡','🟣'];
+ balls.forEach((v,i)=>{
+  let b=document.createElement('button');
+  b.textContent=v+(data.ball===i?' ✓':'');
+  b.onclick=()=>{
+   if(i===0||data.coins>=i*20){
+    if(i>0&&data.ball!==i)data.coins-=i*20;
+    data.ball=i;save();showBalls();
+   }else alert('سکه کافی نداری!');
+  };
+  g.appendChild(b);
+ });
+}
+function showMissions(){
+ show('missions');
+ document.getElementById('missionInfo').textContent=
+ 'مدال‌ها: '+data.medals+' | پیشرفت: '+data.max+' از ۲۵۰ مرحله';
+}
+updateHome();save();
+</script>
+</body>
+</html>
