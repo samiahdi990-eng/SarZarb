@@ -2,8 +2,7 @@
     <application
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:label="سرضرب"
-        android:usesCleartextTraffic="true"
-        android:screenOrientation="portrait">
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
