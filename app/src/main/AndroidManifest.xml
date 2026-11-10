@@ -2,6 +2,7 @@
     <application
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:label="سرضرب"
+        android:icon="@drawable/ic_launcher"
         android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
