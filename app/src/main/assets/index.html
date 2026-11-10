@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>سرضرب</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#8c4bb2;color:white;font-family:Tahoma,Arial;overflow:hidden}
+#game{width:100vw;height:100dvh;display:block;touch-action:manipulation}
+.panel{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;padding:22px;background:linear-gradient(145deg,#a52db0dd,#713caadd)}
+.panel.show{display:flex}.card{width:min(92vw,430px);max-height:80vh;overflow:auto;background:#542477aa;border:1px solid #ffffff55;border-radius:25px;padding:20px;text-align:center;box-shadow:0 12px 35px #32104b55}
+h1{font-size:38px;margin:8px}button{border:0;border-radius:16px;padding:13px 20px;margin:7px;font-size:18px;font-weight:bold;background:#ffe500;color:#4d2870}
+button.secondary{background:#ffffffd9;color:#65328b}.row{display:flex;justify-content:center;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px 0}.level{padding:17px 5px;background:#d5b5dc;color:#777}.level.current{background:#ffe500;color:#333}.level.done{background:#70e5a4;color:#164c32}
+small{opacity:.85}.stats{display:flex;justify-content:space-between;margin:8px 0}.hide{display:none!important}
+</style></head>
+<body>
+<canvas id="game"></canvas>
+<div id="home" class="panel show"><div class="card"><h1>⚽ سرضرب</h1><p>از میان موانع عبور کن و به فینال فصل برس!</p><p id="homeStats"></p><button onclick="startGame()">شروع بازی</button><div class="row"><button class="secondary" onclick="showLevels()">انتخاب لیول</button><button class="secondary" onclick="showBalls()">توپ‌ها</button><button class="secondary" onclick="showMissions()">مدال‌ها</button></div></div></div>
+<div id="levels" class="panel"><div class="card"><h2>🏆 انتخاب لیول</h2><p id="seasonInfo"></p><div class="grid" id="levelGrid"></div><button class="secondary" onclick="show('home')">بازگشت</button></div></div>
+<div id="balls" class="panel"><div class="card"><h2>انتخاب توپ ⚽</h2><div class="grid" id="ballGrid"></div><button class="secondary" onclick="show('home')">بازگشت</button></div></div>
+<div id="missions" class="panel"><div class="card"><h2>🏅 مأموریت‌ها</h2><p>جمع‌آوری مدال: <b id="medalCount"></b></p><p>عبور از مراحل: <b id="progressText"></b></p><button class="secondary" onclick="show('home')">بازگشت</button></div></div>
+<div id="pause" class="panel"><div class="card"><h2>بازی متوقف شد</h2><button onclick="resumeGame()">ادامه</button><button class="secondary" onclick="show('home')">منوی اصلی</button></div></div>
+<div id="final" class="panel"><div class="card"><h2>🎉 فینال فصل!</h2><p>چرخ شانس را بچرخان و جایزه بگیر.</p><h1 id="wheel">🎡</h1><p id="prizeText">جایزه‌ات منتظر توست!</p><button id="spinBtn" onclick="spinWheel()">چرخاندن چرخ شانس</button><button class="secondary" onclick="show('home')">منوی اصلی</button></div></div>
+<div id="hit" class="panel"><div class="card"><h2>💥 برخورد کردی!</h2><p>به ابتدای همین فصل برگشتی.</p><button onclick="retrySeason()">شروع دوباره فصل</button><button class="secondary" onclick="show('home')">منوی اصلی</button></div></div>
+<script>
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+let state=load(), running=false, ballX=.5, direction=1, obstacles=[], score=0, last=0, frame=0;
+function load(){try{return JSON.parse(localStorage.sarzarb||'{}')}catch(e){return {}}}
+function save(){localStorage.sarzarb=JSON.stringify(state)}
+function init(){state.level=state.level||1;state.max=state.max||1;state.medals=state.medals||0;state.taps=100;state.seasonStart=state.seasonStart||1;state.ball=state.ball||0;save();updateHome()}
+function show(id){document.querySelectorAll('.panel').forEach(x=>x.classList.remove('show'));document.getElementById(id).classList.add('show');running=false;updateHome()}
+function updateHome(){document.getElementById('homeStats').textContent=`فصل ${Math.ceil(state.level/25)} | لیول ${state.level} | جام 🏆 ${state.medals} | توپ‌ها ${state.taps}`}
+function resize(){canvas.width=innerWidth*devicePixelRatio;canvas.height=innerHeight*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0)}
+addEventListener('resize',resize);resize();
+function startGame(){show('');running=true;score=0;ballX=.5;direction=1;obstacles=[];for(let i=0;i<9;i++)obstacles.push({x:Math.random()*.8+.1,y:-i*.23,w:.17+Math.random()*.13});last=performance.now();requestAnimationFrame(loop)}
+function loop(t){if(!running)return;let dt=Math.min((t-last)/1000,.04);last=t;frame+=dt;score+=dt*(.5+state.level*.012);ctx.clearRect(0,0,innerWidth,innerHeight);
+let w=innerWidth,h=innerHeight;
+ctx.fillStyle='#70abc4';ctx.fillRect(0,0,w,h);
+for(let y=0;y<h;y+=55){for(let x=0;x<w;x+=55){ctx.fillStyle=((Math.floor(x/55)+Math.floor(y/55))%2)?'#6aa4bd':'#75b2ca';ctx.fillRect(x,y,55,55)}}
+obstacles.forEach(o=>{o.y+=dt*(.42+state.level*.009);let px=o.x*w,py=o.y*h;ctx.fillStyle='#a64f43';ctx.beginPath();ctx.moveTo(px,py+23);ctx.lineTo(px+o.w*w,py+23);ctx.lineTo(px+o.w*w*.5,py-35);ctx.closePath();ctx.fill();ctx.fillStyle='#ff927d';ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+o.w*w,py);ctx.lineTo(px+o.w*w*.5,py-58);ctx.closePath();ctx.fill();if(py>h*.70&&py<h*.82&&Math.abs(ballX-o.x-o.w/2)<o.w*.55){running=false;state.level=Math.max(state.seasonStart,Math.floor(state.level/25)*25+1);save();show('hit')}});
+obstacles=obstacles.filter(o=>o.y<1.2);if(obstacles.length<9)obstacles.push({x:Math.random()*.8+.1,y:-.2,w:.17+Math.random()*.13});
+ctx.font='bold 54px Arial';ctx.textAlign='center';ctx.fillStyle='white';ctx.fillText('⚽',ballX*w,h*.77);
+ctx.font='bold 25px Arial';ctx.fillText('لیول '+state.level,w/2,55);ctx.fillText('توپ: ۱۰۰',w/2,90);
+if(score>18){running=false;completeLevel();return}requestAnimationFrame(loop)}
+canvas.addEventListener('pointerdown',()=>{if(!running)return;ballX=Math.max(.12,Math.min(.88,ballX+direction*.18));direction*=-1});
+function completeLevel(){state.medals++;if(state.level%25===0){state.seasonStart=state.level;save();show('final')}else{state.level++;state.max=Math.max(state.max,state.level);save();show('home');updateHome()}}
+function retrySeason(){state.level=state.seasonStart;save();startGame()}
+function resumeGame(){startGame()}
+function spinWheel(){document.getElementById('spinBtn').disabled=true;document.getElementById('wheel').textContent='🎡✨';setTimeout(()=>{let reward=['۵ مدال','توپ ویژه','۱۰ مدال','بازشدن فصل بعد'][Math.floor(Math.random()*4)];document.getElementById('prizeText').textContent='جایزه: '+reward;if(state.level<250){state.level++;state.max=Math.max(state.max,state.level)}state.seasonStart=state.level;state.medals+=5;save();document.getElementById('spinBtn').disabled=false;document.getElementById('spinBtn').textContent='ادامه به فصل بعد';document.getElementById('spinBtn').onclick=()=>{state.level=Math.min(250,state.level);state.seasonStart=state.level;save();show('home')}} ,1400)}
+function showLevels(){show('levels');let start=Math.floor((state.level-1)/10)*10+1;document.getElementById('seasonInfo').textContent=`فصل ${Math.ceil(state.level/25)} | لیول باز فعلی ${state.level}`;let g=document.getElementById('levelGrid');g.innerHTML='';for(let n=start;n<Math.min(start+10,251);n++){let b=document.createElement('button');b.className='level '+(n===state.level?'current':n<state.level?'done':'');b.textContent=n;b.disabled=n>state.max;b.onclick=()=>{state.level=n;save();startGame()};g.appendChild(b)}}
+function showBalls(){show('balls');let g=document.getElementById('ballGrid');g.innerHTML='';['⚽','🔵','🟡','🟣','🏀','🎾','🏐','🌈','⚫'].forEach((v,i)=>{let b=document.createElement('button');b.textContent=v+(i>4?' 🔒':'');b.onclick=()=>{if(i<=4){state.ball=i;save();alert('توپ انتخاب شد')}};g.appendChild(b)})}
+function showMissions(){show('missions');document.getElementById('medalCount').textContent=state.medals;document.getElementById('progressText').textContent=state.max+'/250'}
+init();
+</script></body></html>
